@@ -17,6 +17,19 @@ struct StoriesView: View {
     
     var body: some View {
         VStack {
+            Text("Hacker News")
+            .font(.largeTitle)
+            .padding()
+            .background(Color.orange)
+            
+            Picker("", selection: $model.indexEndpoint){
+                           Text("news").tag(0)
+                           Text("top").tag(1)
+                           Text("best").tag(2)
+                       }
+            .background(Color.orange)
+            .pickerStyle(SegmentedPickerStyle())
+            
             List {
                 ForEach(self.model.stories) { story in
                     HStack {
@@ -32,8 +45,8 @@ struct StoriesView: View {
                     .padding()
                 }
             }
+             .onReceive(timer) { self.model.currentDate = $0 }
         } //VStack
-        .onReceive(timer) { self.model.currentDate = $0 }
     }
 }
 
@@ -46,6 +59,11 @@ struct StoriesView_Previews: PreviewProvider {
 
 
 
-
+/*
+ Text("Hacker News")
+           .font(.largeTitle)
+           .padding()
+           .background(Color.orange)
+ */
 
 

@@ -9,20 +9,32 @@
 import Foundation
 import Combine
 
-enum EndPoint {
+enum Endpoint {
   static let baseURL = URL(string: "https://hacker-news.firebaseio.com/v0/")!
   
-  case stories
+  case newstories,topstories,beststories
   case story(Int)
   
   var url: URL {
     switch self {
-    case .stories:
-      return EndPoint.baseURL.appendingPathComponent("newstories.json")
+    case .newstories:
+      return Endpoint.baseURL.appendingPathComponent("newstories.json")
+    case .topstories:
+             return Endpoint.baseURL.appendingPathComponent("topstories.json")
+    case .beststories:
+        return Endpoint.baseURL.appendingPathComponent("beststories.json")
     case .story(let id):
-      return EndPoint.baseURL.appendingPathComponent("item/\(id).json")
+      return Endpoint.baseURL.appendingPathComponent("item/\(id).json")
     }
   }
+    init? (index: Int) {
+           switch index {
+           case 0: self = .newstories
+           case 1: self = .topstories
+           case 2: self = .beststories
+           default: return nil
+           }
+       }
 }
 
 //struct NewsAPI {
@@ -34,7 +46,7 @@ class NewsAPI {
     
     // Асинхронная выборка на основе URL
     func fetch<T: Decodable>(_ url: URL) -> AnyPublisher<T, Error> {
-        URLSession.shared.dataTaskPublisher(for: url)             // 1
+        URLSession.shared.dataTaskPublisher(for: url)                // 1
             .map { $0.data}                                          // 2
             .decode(type: T.self, decoder: JSONDecoder())            // 3
             .receive(on: RunLoop.main)                               // 4
@@ -43,14 +55,14 @@ class NewsAPI {
     
     // выборка истории по идентификатору id
     func story(id: Int) -> AnyPublisher<Story, Never> {
-        fetch(EndPoint.story(id).url)                                   // 3
+        fetch(Endpoint.story(id).url)                                   // 3
             .catch { _ in Empty() }                                     // 4
             .eraseToAnyPublisher()                                      // 5
     }
     
     // выборка историй
-    func stories() -> AnyPublisher<[Story], Never> {
-        fetch(EndPoint.stories.url)                                      // 3
+    func stories(from endpoint: Endpoint) -> AnyPublisher<[Story], Never> {
+        fetch( endpoint.url)                                             // 3
             .catch { _ in Empty() }                                      // 4
             .filter { !$0.isEmpty }                                      // 5
             .flatMap { storyIDs in self.mergedStories(ids: storyIDs)}    // 6
@@ -74,8 +86,8 @@ class NewsAPI {
         }
     }
     
-    func storyIDs() -> AnyPublisher<[Int], Never> {
-        fetch(EndPoint.stories.url)
+    func storyIDs(from endpoint: Endpoint) -> AnyPublisher<[Int], Never> {
+        fetch(endpoint.url)
             .catch { _ in Empty() }
             .filter { !$0.isEmpty }
             .eraseToAnyPublisher()
@@ -85,7 +97,7 @@ class NewsAPI {
 /*
 // выборка истории по идентификатору id
 func story(id: Int) -> AnyPublisher<Story, Never> {
-    URLSession.shared.dataTaskPublisher(for: EndPoint.story(id).url) // 1
+    URLSession.shared.dataTaskPublisher(for: Endpoint.story(id).url) // 1
         .map { $0.0 }                                                    // 2
         .decode(type: Story.self, decoder: JSONDecoder())                // 3
         .catch { _ in Empty() }                                          // 4
@@ -93,8 +105,8 @@ func story(id: Int) -> AnyPublisher<Story, Never> {
 }
 
 // выборка историй
-func stories() -> AnyPublisher<[Story], Never> {
-    URLSession.shared.dataTaskPublisher(for: EndPoint.stories.url) // 1
+func stories(from endpoint: Endpoint) -> AnyPublisher<[Story], Never> {
+    URLSession.shared.dataTaskPublisher(for: endpoint.url)           // 1
         .map { $0.0 }                                                // 2
         .decode(type: [Int].self, decoder: JSONDecoder())            // 3
         .catch { _ in Empty() }                                      // 4
@@ -104,9 +116,9 @@ func stories() -> AnyPublisher<[Story], Never> {
         .map { stories in stories.sorted (by: {$0.id > $1.id})}      // 8
         .eraseToAnyPublisher()                                       // 9
 }
-}
-func storyIDs() -> AnyPublisher<[Int], Never> {
-    URLSession.shared.dataTaskPublisher(for: EndPoint.stories.url) // 1
+
+func storyIDs(from endpoint: Endpoint) -> AnyPublisher<[Int], Never> {
+    URLSession.shared.dataTaskPublisher(for: endpoint.url)           // 1
         .map { $0.0 }                                                // 2
         .decode(type: [Int].self, decoder: JSONDecoder())            // 3
         .catch { _ in Empty() }                                      // 4

@@ -13,18 +13,19 @@ import SwiftySound
 class StoriesViewModelID: ObservableObject {
     private let api = NewsAPI.shared
     //input
+    @Published var indexEndpoint: Int = 0
     @Published var currentDate = Date()
     //output
     @Published var stories = [Story]()
     
     init() {
-        $currentDate
-            .flatMap { _ -> AnyPublisher<[Int], Never> in
-                self.api.storyIDs()
+        Publishers.CombineLatest( $currentDate,$indexEndpoint)
+            .flatMap { (time, indexEndpoint) -> AnyPublisher<[Int], Never> in
+                self.api.storyIDs(from: Endpoint( index: indexEndpoint)!)
                 .map { (currentIds) in
-                  if self.oldIds.count == 0 ||
-                     currentIds.first! != self.oldIds.first! {
                      let ids = Array(currentIds.prefix( self.api.maxStories))
+                     
+                  if self.oldIds.count == 0 || ids.first! != self.oldIds.first! {
                      self.oldIds = ids
                      return ids
                     } else { return [Int()] }
@@ -41,12 +42,13 @@ class StoriesViewModelID: ObservableObject {
             }
             .receive(on: DispatchQueue.main)
             .sink (receiveValue: { (stories) in
+                if stories.count > 0 {
                  Sound.play(file: "success.wav")
                  self.stories = stories
+                }
            })
           .store(in: &self.subscriptions)
     }
-    
     private var subscriptions = Set<AnyCancellable>()
     
     private var oldIds = [Int]()
@@ -56,5 +58,4 @@ class StoriesViewModelID: ObservableObject {
     }
 }
 
-// let currentIDs = stories.map{$0.id}
-// print ("......\(currentIDs.count) \(self.oldStoryIDs.count )  \(currentIDs) --- \(self.oldStoryIDs)")
+ //             print ("......\(ids.count) \(self.oldIds.count )  \(ids)\n ---------- \(self.oldIds)")

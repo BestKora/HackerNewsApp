@@ -13,14 +13,15 @@ import SwiftySound
 class StoriesViewModel: ObservableObject {
     private let api = NewsAPI.shared
     //input
+    @Published var indexEndpoint: Int = 0
     @Published var currentDate = Date()
     //output
     @Published var stories = [Story]()
     
     init() {
-        $currentDate
-            .flatMap { _ -> AnyPublisher<[Story], Never> in
-                self.api.stories()
+         Publishers.CombineLatest( $currentDate, $indexEndpoint)
+         .flatMap {  (_, indexEndpoint) -> AnyPublisher<[Story], Never> in
+                self.api.stories(from: Endpoint( index: indexEndpoint)!)
         }
         .receive(on: RunLoop.main)
         .sink(
