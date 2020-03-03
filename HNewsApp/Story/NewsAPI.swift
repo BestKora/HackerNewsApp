@@ -60,7 +60,7 @@ class NewsAPI {
             .eraseToAnyPublisher()                                      // 5
     }
     
-    // выборка историй
+    // выборка историй по endpoint
     func stories(from endpoint: Endpoint) -> AnyPublisher<[Story], Never> {
         fetch( endpoint.url)                                             // 3
             .catch { _ in Empty() }                                      // 4
@@ -70,6 +70,14 @@ class NewsAPI {
             .map { stories in  stories.sorted (by: {$0.id > $1.id})}     // 8
             .eraseToAnyPublisher()                                       // 9
     }
+    
+    // выборка идентификаторов историй по endpoint
+       func storyIDs(from endpoint: Endpoint) -> AnyPublisher<[Int], Never> {
+           fetch(endpoint.url)                                            // 3
+               .catch { _ in Empty() }                                    // 4
+               .filter { !$0.isEmpty }                                    // 5
+               .eraseToAnyPublisher()                                     // 6
+       }
     
     // выборка историй по их идентификаторам
     func mergedStories(ids storyIDs: [Int]) -> AnyPublisher<Story, Never> {
@@ -84,13 +92,6 @@ class NewsAPI {
             combined.merge(with: story(id: id))
                 .eraseToAnyPublisher()
         }
-    }
-    
-    func storyIDs(from endpoint: Endpoint) -> AnyPublisher<[Int], Never> {
-        fetch(endpoint.url)
-            .catch { _ in Empty() }
-            .filter { !$0.isEmpty }
-            .eraseToAnyPublisher()
     }
 }
 
